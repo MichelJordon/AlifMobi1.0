@@ -1,0 +1,14 @@
+namespace Domain.Entities;
+public class Transacition
+{
+    public int TransacitionId { get; set; }
+    public string Recipient {get; set;}
+    public DateTime CreatedAt {get; set;}
+    public Status Status {get; set;}
+    public decimal Amount {get; set;}
+    public PaymentMethod PaymentMethod {get; set;}
+    public string Sender {get; set;}
+    public PaymentType PaymentType {get; set;}
+    public string AcountId {get; set;}
+    public virtual Acount Acount { get; set; }
+}
