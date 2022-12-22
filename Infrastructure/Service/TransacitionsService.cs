@@ -55,13 +55,16 @@ public class TransacitionService
         {
             var newTransacition = _mapper.Map<Transacition>(transacition);  
             var acc = _context.Acounts.FirstOrDefault(x=>x.PhoneNumber == transacition.Sender);
-            if(acc == null) return new Response<GetTransacitionsDto>(HttpStatusCode.NotFound,"Sender not found");
+            if(FindAccount(transacition.Sender) == false) 
+                return new Response<GetTransacitionsDto>(HttpStatusCode.NotFound,"Sender not found");
             newTransacition.AcountId = acc.AcountId;
-            if ( GetAccountBalance(transacition.Sender) <= transacition.Amount )
-            {
+            if ( GetAccountBalance(transacition.Sender) < transacition.Amount )
                 return new Response<GetTransacitionsDto>(HttpStatusCode.NotFound,"Not enough balance");
-            }
-            _context.Transacitions.AddAsync(newTransacition);
+            if ( acc.Authenticated == false && transacition.Amount >= 10000 )
+                return new Response<GetTransacitionsDto>(HttpStatusCode.NotFound,"Not Authenticated");
+            if ( acc.Authenticated == true && transacition.Amount > 100000 )
+                return new Response<GetTransacitionsDto>(HttpStatusCode.NotFound,"To much money");
+            await _context.Transacitions.AddAsync(newTransacition);
             await _context.SaveChangesAsync();
             return new Response<GetTransacitionsDto>(_mapper.Map<GetTransacitionsDto>(newTransacition));
         }
@@ -69,6 +72,16 @@ public class TransacitionService
         {
             return new Response<GetTransacitionsDto>(HttpStatusCode.InternalServerError, ex.Message);
         }
+    }
+    public bool GetAuth( string phoneNumber )
+    {
+        var acc = _context.Acounts.FirstOrDefault(x=>x.PhoneNumber == phoneNumber);
+        return acc.Authenticated;
+    }
+    public bool FindAccount( string phoneNumber )
+    {
+        var acc = _context.Acounts.FirstOrDefault(x=>x.PhoneNumber == phoneNumber);
+        return acc == null ? false : true; 
     }
     public decimal GetAccountBalance( string phoneNumber )
     {
@@ -97,40 +110,4 @@ public class TransacitionService
                 balance -= method.Amount;
             return balance;
     }
-    /*
-    public async Task<Response<AddTransacitionDto>> UpdateJob(AddTransacitionDto transacition)
-    {
-        try
-        {
-            var find = await _context.Transacitions.FindAsync(transacition.);
-            find.JobTitle = job.JobTitle;
-            find.MinSalary = job.MinSalary;
-            find.MaxSalary = job.MaxSalary;
-            var updated = await _context.SaveChangesAsync();
-            return new Response<AddJobDto>(job);
-        }
-        catch (Exception ex)
-        {
-            return new Response<AddJobDto>(HttpStatusCode.InternalServerError, ex.Message);
-        }
-    }
-    */
-    /*
-    public async Task<Response<string>> DeleteJob(string id)
-    {
-        try
-        {
-            var find = await _context.Jobs.FindAsync(id);
-            _context.Remove(find);
-            var response = await _context.SaveChangesAsync();
-            if (response > 0)
-                return new Response<string>("Object deleted successfully");
-            return new Response<string>(HttpStatusCode.BadRequest, "Object not found");
-        }
-        catch (Exception ex)
-        {
-            return new Response<string>(HttpStatusCode.InternalServerError, ex.Message);
-        }
-    }
-    */
 }

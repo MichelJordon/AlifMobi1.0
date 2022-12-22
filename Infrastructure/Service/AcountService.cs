@@ -8,12 +8,14 @@ namespace Infrastructure.Services;
 public class AcountService
 {
     private readonly DataContext _context;
+    public readonly TransacitionService _transacitionService;
     private readonly IMapper _mapper;
 
-    public AcountService(DataContext context, IMapper mapper)
+    public AcountService(DataContext context, IMapper mapper, TransacitionService transacitionService)
     {
         _context = context;
         _mapper = mapper;
+        _transacitionService = transacitionService;
     }
 
     public async Task<Response<List<GetAcountDto>>> GetAcounts()
@@ -28,41 +30,24 @@ public class AcountService
             return new Response<List<GetAcountDto>>(HttpStatusCode.InternalServerError, ex.Message);
         }
     }
+    public async Task<Response<string>> GeAuthenticated( string phoneNumber )
+    {
+        try
+        {
+            return new Response<string>(  _transacitionService.GetAuth(phoneNumber) ? "Authenticated" : "Not Authenticated" );
+        }
+        catch (Exception ex)
+        {
+            return new Response<string>(HttpStatusCode.InternalServerError, ex.Message);
+        }
+    }
     public async Task<Response<decimal>> GetAccountBalance( string phoneNumber )
     {
         try
         {
-            var get = (
-            from t in _context.Transacitions
-            where t.Recipient == phoneNumber || t.Recipient == t.Sender
-            select new GetBalanceDto
-            {
-                PaymentType = t.PaymentType,
-                Amount = t.Amount
-            }
-            ).ToList();
-             var put = (
-            from t in _context.Transacitions
-            where t.Sender == phoneNumber && t.Recipient != t.Sender
-            select new GetBalanceDto
-            {
-                PaymentType = t.PaymentType,
-                Amount = t.Amount
-            }
-            ).ToList();
-            /*
-            var list = _context.Transacitions.Select(s => new GetBalanceDto()
-            {
-                PaymentType = s.PaymentType,
-                Amount = s.Amount
-            }).ToList();
-            */
-            decimal balance = 0;
-            foreach (var method in get)
-                balance += method.Amount;
-            foreach (var method in put)
-                balance -= method.Amount;
-            return new Response<decimal>(balance);
+            if ( _transacitionService.FindAccount( phoneNumber ) == false )
+                return new Response<decimal>(HttpStatusCode.NotFound,"Phone Number not found!");
+            return new Response<decimal>(_transacitionService.GetAccountBalance(phoneNumber));
         }
         catch (Exception ex)
         {

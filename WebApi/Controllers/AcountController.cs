@@ -19,6 +19,11 @@ public class AcountController{
         return await _acountService.GetAcounts();
     }
     //TopUpBalance
+    //GeAuthenticated
+    [HttpGet("GeAuthenticated")]
+    public async Task<Response<string>> GeAuthenticated( string phoneNumber ){
+        return await _acountService.GeAuthenticated( phoneNumber );
+    }
     [HttpGet("GetBalance")]
     public async Task<Response<decimal>> GetAccountBalance( string phoneNumber ){
         return await _acountService.GetAccountBalance( phoneNumber );
